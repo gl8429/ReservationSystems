@@ -12,6 +12,7 @@ public class Client {
 
     private static final String FILE_NAME = "/Users/Lucifer/Documents/ds/server.txt";
     private NameTable nameTable;
+    
 
     public NameTable getNameTable() {
         try {
