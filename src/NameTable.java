@@ -36,4 +36,8 @@ public class NameTable {
     public String getHostName(int index) {
         return hosts[index];
     }
+
+    public int getSize() {
+        return size;
+    }
 }
