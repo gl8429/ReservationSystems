@@ -34,8 +34,7 @@ public class Server {
         Util.println("End loading Server information...\n");
         return this.nameTable;
     }
-    public static void main(String[] args) {
-        Util.println("aa");
-    }
+
+
 
 }
