@@ -1,52 +1,29 @@
 /**
  * Created by Xingyuan on 9/19/15.
  */
-
-
 import com.sun.org.apache.xalan.internal.xsltc.compiler.util.Util;
-
 import java.net.*;
 import java.io.*;
+import java.util.Random;
 
 public class Client {
     private static final String FILE_NAME = "/Users/Xingyuan/Documents/GitHub/ReservationSystems/testCase/server.txt";
-    private NameTable nameTable;
-
-    public NameTable getNameTable() {
-        try {
-            BufferedReader bf = new BufferedReader(new FileReader(new File(FILE_NAME)));
-            String line;
-            this.nameTable = new NameTable();
-
-            Util.println("\nStart loading server information...");
-            while ((line = bf.readLine()) != null) {
-                String[] serverInfo = line.split(" ");
-                String serverName = serverInfo[0];
-                String serverHost = serverInfo[1];
-                int serverPort = Integer.parseInt(serverInfo[2]);
-                if (this.nameTable.insert(serverName, serverHost, serverPort)){
-                    Util.println(String.format("Successfully load server: %s", serverName));
-                } else {
-                    Util.println(String.format("%s has been loaded", serverName));
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        Util.println("End loading Server information...\n");
-        return this.nameTable;
-    }
 
     public static void main(String [] args)
     {
+        NameTable nameTable = new NameTable(FILE_NAME);
 
-        String serverName = args[0];
-        int port = Integer.parseInt(args[1]);
+        // Randomly choose a server
+        Random rand = new Random();
+        int randomNum = rand.nextInt(nameTable.size());
+        String host = nameTable.getHost(randomNum);
+        int port = nameTable.getPort(randomNum);
+
         try
         {
-            System.out.println("Connecting to " + serverName +
+            System.out.println("Connecting to " + host +
                     " on port " + port);
-            Socket client = new Socket(serverName, port);
+            Socket client = new Socket(host, port);
             System.out.println("Just connected to "
                     + client.getRemoteSocketAddress());
             OutputStream outToServer = client.getOutputStream();

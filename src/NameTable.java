@@ -1,13 +1,11 @@
+/**
+ * Created by Xingyuan on 9/19/15.
+ */
 import com.sun.org.apache.xalan.internal.xsltc.compiler.util.Util;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-
-/**
- * Created by Xingyuan on 9/19/15.
- */
 
 public class NameTable {
     final int maxSize = 100;
@@ -22,7 +20,7 @@ public class NameTable {
             BufferedReader bf = new BufferedReader(new FileReader(new File(fileName)));
             String line;
 
-            Util.println("\nStart loading Server information...");
+            Util.println("\nStart loading server information...");
             while ((line = bf.readLine()) != null) {
                 String[] serverInfo = line.split(" ");
                 String serverName = serverInfo[0];
@@ -37,7 +35,7 @@ public class NameTable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Util.println("End loading Server information...\n");
+        Util.println("End loading server information...\n");
     }
 
     public int search(String s) {
