@@ -1,5 +1,3 @@
-
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -7,8 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 
-import java.util.Hashtable;
-import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -18,8 +15,10 @@ import java.util.concurrent.Semaphore;
 public class Server extends Thread{
 
     private static final String FILE_NAME = "/Users/Lucifer/IdeaProjects/ReservationSystems/testCase/server.txt";
+    private static final int SEAT_NUMBER = 100;
     private ServerSocket serverSocket;
     private static final Semaphore semaphore = new Semaphore(1);
+    private Seat seat = new Seat();
 
     public Server(int port) throws IOException
     {
@@ -74,34 +73,41 @@ public class Server extends Thread{
 
     public void sell(Socket server) throws IOException, InterruptedException {
 
-        while(!soldAll){
+        if (seat.getLeftSeats() != 0){
             Thread.sleep(1000);
             semaphore.acquire();
-            if (leftTickets > 0) {
-                System.out.println("Just connected to "
-                        + server.getRemoteSocketAddress());
-                DataInputStream in =
-                        new DataInputStream(server.getInputStream());
-                Thread t = Thread.currentThread();
-                String tmp = in.readUTF();
-                System.out.println(t.getName() + tmp);
-                //System.out.println(in.readUTF());
+            System.out.println("Just connected to "
+                    + server.getRemoteSocketAddress());
+            DataInputStream in =
+                    new DataInputStream(server.getInputStream());
+            //Thread t = Thread.currentThread();
 
+            Message message = Message.parseMessage(new StringTokenizer(in.readUTF()));
+            if (message.getMsgSender() == Message.MessageSender.CLIENT) {
+                if (message.getMsgType() == Message.MessageType.READ) {
+                    
+                } else {
 
-
-
-                DataOutputStream out =
-                        new DataOutputStream(server.getOutputStream());
-                out.writeUTF("Thank you for connecting to "
-                        + server.getLocalSocketAddress() + "\nGoodbye!");
+                }
             } else {
-                soldAll = true;
-                System.out.println("Sold out all tickets");
+
             }
+
+
+
+
+
+            DataOutputStream out =
+                    new DataOutputStream(server.getOutputStream());
+            out.writeUTF("Thank you for connecting to "
+                    + server.getLocalSocketAddress() + "\nGoodbye!");
 
             semaphore.release();
             server.close();
+        } else {
+            System.out.println("Sold out all tickets");
         }
+
     }
 
     public static void main(String[] args) {
