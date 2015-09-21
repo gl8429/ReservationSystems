@@ -18,7 +18,7 @@ public class Server extends Thread{
     private static final int SEAT_NUMBER = 100;
     private ServerSocket serverSocket;
     private static final Semaphore semaphore = new Semaphore(1);
-    private Seat seat = new Seat();
+    private Seat seat = new Seat(SEAT_NUMBER);
 
     public Server(int port) throws IOException
     {
@@ -85,7 +85,7 @@ public class Server extends Thread{
             Message message = Message.parseMessage(new StringTokenizer(in.readUTF()));
             if (message.getMsgSender() == Message.MessageSender.CLIENT) {
                 if (message.getMsgType() == Message.MessageType.READ) {
-                    
+
                 } else {
 
                 }
