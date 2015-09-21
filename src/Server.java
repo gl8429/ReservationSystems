@@ -4,6 +4,9 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 /**
  * Created by Lucifer on 9/19/15.
@@ -18,6 +21,8 @@ public class Server extends Thread{
     private DirectClock clock;
     private static final Semaphore semaphore = new Semaphore(1);
     private int[] q;
+    Logger logger = Logger.getLogger("serverLog");
+    FileHandler fh;
 
     public Server(int id, NameTable nameTable, int seatNumber) throws IOException {
         this.id = id;
@@ -28,6 +33,11 @@ public class Server extends Thread{
         this.clock = new DirectClock(nameTable.size(), id);
         this.q = new int[nameTable.size()];
         Arrays.fill(q, Integer.MAX_VALUE);
+        fh = new FileHandler(String.format("/Users/Lucifer/IdeaProjects/ReservationSystems/testCase/%s.log", id));
+        logger.addHandler(fh);
+        SimpleFormatter formatter = new SimpleFormatter();
+        fh.setFormatter(formatter);
+
     }
 
     public void run() {
@@ -36,7 +46,7 @@ public class Server extends Thread{
         {
             try
             {
-                System.out.println("Waiting for client on port " +
+                logger.info("Waiting for client on port " +
                         serverSocket.getLocalPort() + "...");
                 Socket server = serverSocket.accept();
                 Thread t = new Thread(new sellRunnable(server));
@@ -45,7 +55,7 @@ public class Server extends Thread{
 
             }catch(SocketTimeoutException s)
             {
-                System.out.println("Socket timed out!");
+                logger.info("Socket timed out!");
                 break;
             }catch(IOException e)
             {
@@ -65,6 +75,7 @@ public class Server extends Thread{
 
         public void run() {
             try {
+                logger.info("Successfully receive info. from client...");
                 sell(socket);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -96,13 +107,11 @@ public class Server extends Thread{
     }
 
     public void sell(Socket server) throws IOException, InterruptedException {
-            System.out.println("Just connected to "
-                    + server.getRemoteSocketAddress());
-            DataInputStream in =
-                    new DataInputStream(server.getInputStream());
-            //Thread t = Thread.currentThread();
+            logger.info("Just connected to " + server.getRemoteSocketAddress());
+            DataInputStream in = new DataInputStream(server.getInputStream());
 
             Message message = Message.parseMessage(new StringTokenizer(in.readUTF()));
+            logger.info("Receive message from client:" + message.toString());
             if (message.getTag() == Message.MessageType.RESERVE) {
                 // Send CS request to other servers and update my own queue.
                 semaphore.acquire();
