@@ -6,7 +6,7 @@ import java.util.StringTokenizer;
 
 public class Message {
     public enum MessageType {
-        RESERVE, SEARCH, DELETE, REQUEST, RELEASE, ACK, RESULT, AWAKE
+        RESERVE, SEARCH, DELETE, REQUEST, RELEASE, ACK, RESULT, RECOVER
     }
 
     String srcId;

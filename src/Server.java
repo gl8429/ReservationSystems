@@ -1,11 +1,6 @@
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
-
-import java.util.List;
+import java.io.*;
+import java.net.*;
+import java.util.Arrays;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
 
@@ -15,20 +10,26 @@ import java.util.concurrent.Semaphore;
 
 public class Server extends Thread{
 
-    private static final String FILE_NAME = "/Users/Lucifer/IdeaProjects/ReservationSystems/testCase/server.txt";
-    private static final int SEAT_NUMBER = 100;
+    private int id;
     private ServerSocket serverSocket;
+    private Seat seat;
+    private NameTable nameTable;
+    private DirectClock clock;
     private static final Semaphore semaphore = new Semaphore(1);
-    private Seat seat = new Seat(SEAT_NUMBER);
+    private int[] q;
 
-    public Server(int port) throws IOException
-    {
-        serverSocket = new ServerSocket(port);
+    public Server(int id, NameTable nameTable, int seatNumber) throws IOException {
+        this.id = id;
+        this.nameTable = nameTable;
+        this.seat = new Seat(seatNumber);
+        serverSocket = new ServerSocket(nameTable.getPort(id));
         serverSocket.setSoTimeout(100000);
+        this.clock = new DirectClock(nameTable.size(), id);
+        this.q = new int[nameTable.size()];
+        Arrays.fill(q, Integer.MAX_VALUE);
     }
 
-    public void run()
-    {
+    public void run() {
         int i = 0;
         while(true)
         {
@@ -53,7 +54,7 @@ public class Server extends Thread{
         }
     }
 
-    public class sellRunnable implements Runnable{
+    public class sellRunnable implements Runnable {
 
         private Socket socket;
 
@@ -72,11 +73,28 @@ public class Server extends Thread{
         }
     }
 
-    public void sell(Socket server) throws IOException, InterruptedException {
+    public void broadCast(Message.MessageType type, String buffer) throws IOException{
+        String myId =  nameTable.getHost(id) + ":" + nameTable.getPort(id);
+        clock.sendAction();
+        for (int index = 0; index < nameTable.size(); ++index) {
+            if (id != index) {
+                send(type, buffer, index, myId);
+            }
+        }
+    }
 
-        if (seat.getLeftSeats() != 0){
-            Thread.sleep(1000);
-            semaphore.acquire();
+    public void send(Message.MessageType type, String buffer, int index, String myId) throws IOException {
+        String otherServerId = nameTable.getHost(index) + ":" + nameTable.getPort(index);
+        Message reqMessage = new Message(myId, otherServerId, type, buffer);
+        Socket client = new Socket(nameTable.getHost(index), nameTable.getPort(index));
+        System.out.print("Just connected to: " + client.getRemoteSocketAddress());
+        OutputStream outToOtherServer = client.getOutputStream();
+        DataOutputStream out = new DataOutputStream(outToOtherServer);
+        out.writeUTF(reqMessage.toString());
+
+    }
+
+    public void sell(Socket server) throws IOException, InterruptedException {
             System.out.println("Just connected to "
                     + server.getRemoteSocketAddress());
             DataInputStream in =
@@ -84,45 +102,134 @@ public class Server extends Thread{
             //Thread t = Thread.currentThread();
 
             Message message = Message.parseMessage(new StringTokenizer(in.readUTF()));
-            if (message.getMsgSender() == Message.MessageSender.CLIENT) {
-                if (message.getMsgType() == Message.MessageType.READ) {
-                    //if (seat.search(message.getSrcId()) == null)
-                    //List<Integer> temp = seat.search(message.getSrcId());
-                    //Message tempMessage = new Message(message.destId, message.srcId, Message.MessageType.READ ,Message.MessageSender.SERVER, )
-                } else {
+            if (message.getTag() == Message.MessageType.RESERVE) {
+                // Send CS request to other servers and update my own queue.
+                semaphore.acquire();
+                q[id] = clock.getValue(id);
+                broadCast(Message.MessageType.REQUEST, String.valueOf(id) + " " + String.valueOf(q[id]));
+                semaphore.release();
+                while (true) {
+                    Thread.sleep(1000);
+                    semaphore.acquire();
+                    if (q[id] < findMin(q) && q[id] < findMin(clock.clock)) {
+                        semaphore.release();
+                        String customer = message.getMsg().split(" ")[0];
+                        int ticketNumber = Integer.parseInt(message.getMsg().split(" ")[1]);
+                        broadCast(Message.MessageType.RELEASE, String.valueOf(id));
+                        semaphore.acquire();
+                        q[id] = Integer.MAX_VALUE;
+                        semaphore.release();
+                        DataOutputStream out = new DataOutputStream(server.getOutputStream());
 
+                        if (seat.getLeftSeats() < ticketNumber) {
+                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                                    String.format("Failed: only %d seats left but %d seats are requested", seat.getLeftSeats(), ticketNumber));
+                            out.writeUTF(msg.toString());
+                        } else if (!seat.search(customer).isEmpty()) {
+                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                                    String.format("Failed %s has booked the following seats: %s", customer, seat.search(customer).toString()));
+                            out.writeUTF(msg.toString());
+                        } else {
+                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                                    String.format("The seats have been reserved for %s: %s", customer, seat.reserve(customer, ticketNumber).toString()));
+                            out.writeUTF(msg.toString());
+                        }
+                    } else {
+                        semaphore.release();
+                    }
                 }
-            } else {
+            } else if (message.getTag() == Message.MessageType.SEARCH) {
+                // Send CS request to other servers and update my own queue.
+                semaphore.acquire();
+                q[id] = clock.getValue(id);
+                broadCast(Message.MessageType.REQUEST, String.valueOf(id) + " " + String.valueOf(q[id]));
+                semaphore.release();
+                while (true) {
+                    Thread.sleep(1000);
+                    semaphore.acquire();
+                    if (q[id] < findMin(q) && q[id] < findMin(clock.clock)) {
+                        semaphore.release();
+                        String customer = message.getMsg();
+                        broadCast(Message.MessageType.RELEASE, String.valueOf(id));
+                        semaphore.acquire();
+                        q[id] = Integer.MAX_VALUE;
+                        semaphore.release();
+                        DataOutputStream out = new DataOutputStream(server.getOutputStream());
+                        if (seat.search(customer).isEmpty()) {
+                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                                    String.format("Failed: no reservation is made by %s", customer));
+                            out.writeUTF(msg.toString());
+                        } else {
+                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                                    seat.search(customer).toString());
+                            out.writeUTF(msg.toString());
+                        }
+                    } else {
+                        semaphore.release();
+                    }
+                }
+            } else if (message.getTag() == Message.MessageType.DELETE) {
+                // Send CS request to other servers and update my own queue.
+                semaphore.acquire();
+                q[id] = clock.getValue(id);
+                broadCast(Message.MessageType.REQUEST, String.valueOf(id) + " " + String.valueOf(q[id]));
+                semaphore.release();
+                while (true) {
+                    Thread.sleep(1000);
+                    semaphore.acquire();
+                    if (q[id] < findMin(q) && q[id] < findMin(clock.clock)) {
+                        semaphore.release();
+                        String customer = message.getMsg();
+                        broadCast(Message.MessageType.RELEASE, String.valueOf(id));
+                        semaphore.acquire();
+                        q[id] = Integer.MAX_VALUE;
+                        semaphore.release();
+                        DataOutputStream out = new DataOutputStream(server.getOutputStream());
+                        if (seat.search(customer).isEmpty()) {
+                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                                    String.format("Failed: no reservation is made by %s", customer));
+                            out.writeUTF(msg.toString());
+                        } else {
+                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                                    String.format("%d seats have been released. %d seats are now available.", seat.delete(customer).size(),seat.getLeftSeats()));
+                            out.writeUTF(msg.toString());
+                        }
+                    } else {
+                        semaphore.release();
+                    }
+                }
+            } else if (message.getTag() == Message.MessageType.REQUEST) {
+                int sender = Integer.parseInt(message.getMsg().split(" ")[0]);
+                int timeStamp = Integer.parseInt(message.getMsg().split(" ")[1]);
+                semaphore.acquire();
+                clock.receiveAction(sender, timeStamp);
+                q[sender] = timeStamp;
+                broadCast(Message.MessageType.ACK, String.valueOf(id) + " " + String.valueOf(clock.getValue(id)));
+                semaphore.release();
+            } else if (message.getTag() == Message.MessageType.RELEASE) {
+                int sender = Integer.parseInt(message.getMsg());
+                semaphore.acquire();
+                q[sender] = Integer.MAX_VALUE;
+                semaphore.release();
+            } else if (message.getTag() == Message.MessageType.ACK) {
+                int sender = Integer.parseInt(message.getMsg().split(" ")[0]);
+                int timeStamp = Integer.parseInt(message.getMsg().split(" ")[1]);
+                semaphore.acquire();
+                clock.receiveAction(sender, timeStamp);
+                semaphore.release();
+            } else if (message.getTag() == Message.MessageType.RESULT) {
 
             }
-
-
-
-
-
-            DataOutputStream out =
-                    new DataOutputStream(server.getOutputStream());
-            out.writeUTF("Thank you for connecting to "
-                    + server.getLocalSocketAddress() + "\nGoodbye!");
-
-            semaphore.release();
             server.close();
-        } else {
-            System.out.println("Sold out all tickets");
-        }
 
     }
 
-    public static void main(String[] args) {
-        NameTable nameTable = new NameTable(FILE_NAME);
-        for (int i = 0; i < nameTable.size(); i++) {
-            int port = nameTable.getPort(0);
-            try {
-                Thread t = new Server(port);
-                t.start();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+    public int findMin(int[] q) {
+        int min = Integer.MAX_VALUE;
+        for (int i : q) {
+            if (min > i) min = i;
         }
+        return min;
     }
+
 }
