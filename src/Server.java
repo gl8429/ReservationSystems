@@ -5,6 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
 
@@ -85,7 +86,9 @@ public class Server extends Thread{
             Message message = Message.parseMessage(new StringTokenizer(in.readUTF()));
             if (message.getMsgSender() == Message.MessageSender.CLIENT) {
                 if (message.getMsgType() == Message.MessageType.READ) {
-
+                    //if (seat.search(message.getSrcId()) == null)
+                    //List<Integer> temp = seat.search(message.getSrcId());
+                    //Message tempMessage = new Message(message.destId, message.srcId, Message.MessageType.READ ,Message.MessageSender.SERVER, )
                 } else {
 
                 }
