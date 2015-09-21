@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.*;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
 
@@ -218,7 +219,24 @@ public class Server extends Thread{
                 clock.receiveAction(sender, timeStamp);
                 semaphore.release();
             } else if (message.getTag() == Message.MessageType.RESULT) {
-
+                int sender = Integer.parseInt(message.getMsg().split("#")[0]);
+                int timeStamp = Integer.parseInt(message.getMsg().split("#")[1]);
+                seat.setSeat(message.getMsg().split("#")[2]);
+                semaphore.acquire();
+                clock.receiveAction(sender, timeStamp);
+                semaphore.release();
+            } else if (message.getTag() == Message.MessageType.RECOVER) {
+                semaphore.acquire();
+                String myId = nameTable.getHost(id) + ":" + nameTable.getPort(id);
+                String buffer = id + "#" + clock.getValue(id) + "#";
+                semaphore.release();
+                for (Map.Entry<Integer, String> entry : seat.getSeat().entrySet()) {
+                    buffer += entry.getKey() + ":" + entry.getValue() + ",";
+                }
+                send(Message.MessageType.RESULT, buffer.substring(0, buffer.length() - 1), Integer.parseInt(message.getMsg()), myId);
+                semaphore.acquire();
+                clock.sendAction();
+                semaphore.release();
             }
             server.close();
 
