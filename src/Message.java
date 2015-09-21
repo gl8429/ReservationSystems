@@ -9,10 +9,10 @@ public class Message {
         RESERVE, SEARCH, DELETE, REQUEST, RELEASE, ACK, RESULT, RECOVER
     }
 
-    String srcId;
-    String destId;
-    MessageType tag;
-    String msg;
+    private String srcId;
+    private String destId;
+    private MessageType tag;
+    private String msg;
 
     public Message(String srcId, String destId, MessageType tag, String msg) {
         this.srcId = srcId;
