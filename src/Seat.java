@@ -58,9 +58,4 @@ public class Seat {
         }
         return reservedSeats;
     }
-
-    public static void main(String[] args) {
-        Seat seat = new Seat(100);
-        seat.search("Garry");
-    }
 }

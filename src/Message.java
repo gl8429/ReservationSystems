@@ -6,27 +6,19 @@ import java.util.StringTokenizer;
 
 public class Message {
     public enum MessageType {
-        READ, WRITE
-    }
-
-    public enum MessageSender {
-        SERVER, CLIENT
+        RESERVE, SEARCH, DELETE, REQUEST, RELEASE, ACK, RESULT, AWAKE
     }
 
     String srcId;
     String destId;
-    MessageType msgType;
-    MessageSender msgSender;
-    String msgBuf;
-    int count;
+    MessageType tag;
+    String msg;
 
-    public Message(String srcId, String destId, MessageType msgType, MessageSender msgSender, String msgBuf, int count) {
+    public Message(String srcId, String destId, MessageType tag, String msg) {
         this.srcId = srcId;
         this.destId = destId;
-        this.msgType = msgType;
-        this.msgSender = msgSender;
-        this.msgBuf = msgBuf;
-        this.count = count;
+        this.tag = tag;
+        this.msg = msg;
     }
 
     public String getSrcId() {
@@ -37,40 +29,24 @@ public class Message {
         return destId;
     }
 
-    public MessageType getMsgType() {
-        return msgType;
+    public MessageType getTag() {
+        return tag;
     }
 
-    public MessageSender getMsgSender() {
-        return msgSender;
-    }
-
-    public String getMsgBuf() {
-        return msgBuf;
-    }
-
-    public int getCount() {
-        return count;
+    public String getMsg() {
+        return msg;
     }
 
     public static Message parseMessage(StringTokenizer st) {
         String srcId = st.nextToken();
         String destId = st.nextToken();
-        MessageType msgType = MessageType.valueOf(st.nextToken()) ;
-        MessageSender msgSender = MessageSender.valueOf(st.nextToken());
-        String msgBuf = st.nextToken();
-        Integer count = Integer.parseInt(st.nextToken());
-        return new Message(srcId, destId, msgType, msgSender, msgBuf, count);
+        MessageType tag = MessageType.valueOf(st.nextToken()) ;
+        String msg = st.nextToken("#");
+        return new Message(srcId, destId, tag, msg);
     }
 
     @Override
     public String toString() {
-        String s =  srcId + " " +
-                    destId + " " +
-                    msgType.name() + " " +
-                    msgSender.name() + " " +
-                    msgBuf + " " +
-                    String.valueOf(count) + "#";
-        return s;
+        return srcId + " " + destId + " " + tag.name() + " " + msg + "#";
     }
 }

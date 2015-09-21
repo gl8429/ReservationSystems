@@ -21,11 +21,9 @@ public class Client {
 
         try
         {
-            System.out.println("Connecting to " + host +
-                    " on port " + port);
+            System.out.println("Connecting to " + host + " on port " + port);
             Socket client = new Socket(host, port);
-            System.out.println("Just connected to "
-                    + client.getRemoteSocketAddress());
+            System.out.println("Just connected to " + client.getRemoteSocketAddress());
             OutputStream outToServer = client.getOutputStream();
             DataOutputStream out = new DataOutputStream(outToServer);
             out.writeUTF("Hello from "
