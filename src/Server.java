@@ -123,15 +123,15 @@ public class Server extends Thread{
                         DataOutputStream out = new DataOutputStream(server.getOutputStream());
 
                         if (seat.getLeftSeats() < ticketNumber) {
-                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                            Message msg = new Message(message.getDestId(), message.getSrcId(), Message.MessageType.RESULT,
                                     String.format("Failed: only %d seats left but %d seats are requested", seat.getLeftSeats(), ticketNumber));
                             out.writeUTF(msg.toString());
                         } else if (!seat.search(customer).isEmpty()) {
-                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                            Message msg = new Message(message.getDestId(), message.getSrcId(), Message.MessageType.RESULT,
                                     String.format("Failed %s has booked the following seats: %s", customer, seat.search(customer).toString()));
                             out.writeUTF(msg.toString());
                         } else {
-                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                            Message msg = new Message(message.getDestId(), message.getSrcId(), Message.MessageType.RESULT,
                                     String.format("The seats have been reserved for %s: %s", customer, seat.reserve(customer, ticketNumber).toString()));
                             out.writeUTF(msg.toString());
                         }
@@ -157,11 +157,11 @@ public class Server extends Thread{
                         semaphore.release();
                         DataOutputStream out = new DataOutputStream(server.getOutputStream());
                         if (seat.search(customer).isEmpty()) {
-                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                            Message msg = new Message(message.getDestId(), message.getSrcId(), Message.MessageType.RESULT,
                                     String.format("Failed: no reservation is made by %s", customer));
                             out.writeUTF(msg.toString());
                         } else {
-                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                            Message msg = new Message(message.getDestId(), message.getSrcId(), Message.MessageType.RESULT,
                                     seat.search(customer).toString());
                             out.writeUTF(msg.toString());
                         }
@@ -187,11 +187,11 @@ public class Server extends Thread{
                         semaphore.release();
                         DataOutputStream out = new DataOutputStream(server.getOutputStream());
                         if (seat.search(customer).isEmpty()) {
-                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                            Message msg = new Message(message.getDestId(), message.getSrcId(), Message.MessageType.RESULT,
                                     String.format("Failed: no reservation is made by %s", customer));
                             out.writeUTF(msg.toString());
                         } else {
-                            Message msg = new Message(message.destId, message.srcId, Message.MessageType.RESULT,
+                            Message msg = new Message(message.getDestId(), message.getSrcId(), Message.MessageType.RESULT,
                                     String.format("%d seats have been released. %d seats are now available.", seat.delete(customer).size(),seat.getLeftSeats()));
                             out.writeUTF(msg.toString());
                         }
