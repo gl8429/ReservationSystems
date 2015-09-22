@@ -16,6 +16,9 @@ public class Client {
         String destId = client.getRemoteSocketAddress().toString();
         String cmdType = cmd.split(" ")[0];
         String customer = cmd.split(" ")[1];
+        /* Get rid of the unwanted first '/' */
+        srcId = srcId.substring(1, srcId.length());
+        destId = destId.substring(1, destId.length());
         if (cmdType.equals("reserve")) {
             String ticketNumber = cmd.split(" ")[2];
             Message msgToSend = new Message(srcId, destId, Message.MessageType.RESERVE, customer + " " + ticketNumber);
@@ -76,7 +79,7 @@ public class Client {
 
                 /* Get the result back after server processes client's request */
                 String msgGetFromServer = in.readUTF();
-                Message message = Message.parseMessage(new StringTokenizer(msgGetFromServer));
+                Message message = Message.parseMessage(msgGetFromServer);
                 System.out.println("The result is:");
                 System.out.println(message.getMsg());
             }
