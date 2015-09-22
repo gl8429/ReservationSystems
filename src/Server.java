@@ -29,7 +29,7 @@ public class Server extends Thread{
         this.nameTable = nameTable;
         this.seat = new Seat(seatNumber);
         serverSocket = new ServerSocket(nameTable.getPort(id));
-        serverSocket.setSoTimeout(100000);
+        serverSocket.setSoTimeout(1000000);
         this.clock = new DirectClock(nameTable.size(), id);
         this.q = new int[nameTable.size()];
         Arrays.fill(q, Integer.MAX_VALUE);
@@ -112,13 +112,17 @@ public class Server extends Thread{
     }
 
     public void sell(Socket server) throws IOException, InterruptedException {
+        while (true) {
             logger.info("Just connected to " + server.getRemoteSocketAddress());
             DataInputStream in = new DataInputStream(server.getInputStream());
-
-            logger.info(in.readUTF());
-            Message message = Message.parseMessage(in.readUTF());
+            Message message = null;
+            try {
+                message = Message.parseMessage(in.readUTF());
+            } catch (EOFException e) {
+                break;
+            }
             logger.info("Receive message from client: " + message.toString());
-            if (message.getTag().equals(Message.MessageType.RESERVE) ) {
+            if (message.getTag().equals(Message.MessageType.RESERVE)) {
                 // Send CS request to other servers and update my own queue.
                 logger.info("Message Type: RESERVE");
                 semaphore.acquire();
@@ -155,8 +159,10 @@ public class Server extends Thread{
                                     String.format("The seats have been reserved for %s: %s", customer, seat.reserve(customer, ticketNumber).toString()));
                             out.writeUTF(msg.toString());
                         }
+                        break;
                     } else {
                         semaphore.release();
+                        break;
                     }
                 }
             } else if (message.getTag() == Message.MessageType.SEARCH) {
@@ -212,7 +218,7 @@ public class Server extends Thread{
                             out.writeUTF(msg.toString());
                         } else {
                             Message msg = new Message(message.getDestId(), message.getSrcId(), Message.MessageType.RESULT,
-                                    String.format("%d seats have been released. %d seats are now available.", seat.delete(customer).size(),seat.getLeftSeats()));
+                                    String.format("%d seats have been released. %d seats are now available.", seat.delete(customer).size(), seat.getLeftSeats()));
                             out.writeUTF(msg.toString());
                         }
                     } else {
@@ -258,8 +264,10 @@ public class Server extends Thread{
                 clock.sendAction();
                 semaphore.release();
             }
-            server.close();
-
+//            logger.info("Socket is closing.");
+//            server.close();
+//            logger.info("Socket closed...");
+        }
     }
 
     public int findMin(int[] q) {
