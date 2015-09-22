@@ -2,8 +2,6 @@
  * Created by Xingyuan on 9/19/15.
  */
 
-import java.util.StringTokenizer;
-
 public class Message {
     public enum MessageType {
         RESERVE, SEARCH, DELETE, REQUEST, RELEASE, ACK, RESULT, RECOVER
@@ -37,16 +35,17 @@ public class Message {
         return msg;
     }
 
-    public static Message parseMessage(StringTokenizer st) {
-        String srcId = st.nextToken();
-        String destId = st.nextToken();
-        MessageType tag = MessageType.valueOf(st.nextToken()) ;
-        String msg = st.nextToken("#");
+    public static Message parseMessage(String s) {
+
+        String srcId = s.split("#")[0];
+        String destId = s.split("#")[1];
+        MessageType tag = MessageType.valueOf(s.split("#")[2]);
+        String msg = s.split("#")[3];
         return new Message(srcId, destId, tag, msg);
     }
 
     @Override
     public String toString() {
-        return srcId + " " + destId + " " + tag.name() + " " + msg + "#";
+        return srcId + "#" + destId + "#" + tag.name() + "#" + msg;
     }
 }
