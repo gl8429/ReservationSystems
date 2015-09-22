@@ -74,7 +74,12 @@ public class Server extends Thread{
         String myId =  nameTable.getHost(id) + ":" + nameTable.getPort(id);
         for (int index = 0; index < nameTable.size(); ++index) {
             if (id != index) {
-                send(type, buffer, index, myId);
+                try {
+                    send(type, buffer, index, myId);
+                } catch (ConnectException e) {
+                    continue;
+                }
+
             }
         }
     }
@@ -378,5 +383,18 @@ public class Server extends Thread{
             if (min > i) min = i;
         }
         return min;
+    }
+
+    public static void main(String[] args) {
+
+        String FILE_NAME = "/Users/Lucifer/IdeaProjects/ReservationSystems/testCase/server.txt";
+        int SEAT_NUMBER = 100;
+        NameTable nameTable = new NameTable(FILE_NAME);
+        try {
+            Thread t = new Server(Integer.parseInt(args[1]), nameTable, SEAT_NUMBER);
+            t.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
