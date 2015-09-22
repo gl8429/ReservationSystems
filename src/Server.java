@@ -1,7 +1,6 @@
 import java.io.*;
 import java.net.*;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -74,7 +73,12 @@ public class Server extends Thread{
         String myId =  nameTable.getHost(id) + ":" + nameTable.getPort(id);
         for (int index = 0; index < nameTable.size(); ++index) {
             if (id != index) {
-                send(type, buffer, index, myId);
+                try {
+                    send(type, buffer, index, myId);
+                } catch (ConnectException e) {
+                    continue;
+                }
+
             }
         }
     }
@@ -357,14 +361,20 @@ public class Server extends Thread{
                 semaphore.release();
 
             } else if (message.getTag() == Message.MessageType.RECOVER) {
+
+                int sender = Integer.parseInt(message.getMsg().split(" ")[0]);
+                int recoverTimeStamp = Integer.parseInt(message.getMsg().split(" ")[1]);
+                int timeStamp;
+
                 semaphore.acquire();
-                String myId = nameTable.getHost(id) + ":" + nameTable.getPort(id);
-                String buffer = id + "#" + clock.getValue(id) + "#";
+                timeStamp = clock.getValue(id);
+                clock.receiveAction(sender, recoverTimeStamp);
                 semaphore.release();
-                for (Map.Entry<Integer, String> entry : seat.getSeat().entrySet()) {
-                    buffer += entry.getKey() + ":" + entry.getValue() + ",";
-                }
-                send(Message.MessageType.RESULT, buffer.substring(0, buffer.length() - 1), Integer.parseInt(message.getMsg()), myId);
+
+                String seatInfo = seat.seatToString();
+
+                send(Message.MessageType.RESULT, id + "#" + timeStamp + "#" + seatInfo, sender, message.getDestId());
+
                 semaphore.acquire();
                 clock.sendAction();
                 semaphore.release();
@@ -378,5 +388,18 @@ public class Server extends Thread{
             if (min > i) min = i;
         }
         return min;
+    }
+
+    public static void main(String[] args) {
+
+        String FILE_NAME = "/Users/Lucifer/IdeaProjects/ReservationSystems/testCase/server.txt";
+        int SEAT_NUMBER = 100;
+        NameTable nameTable = new NameTable(FILE_NAME);
+        try {
+            Thread t = new Server(Integer.parseInt(args[1]), nameTable, SEAT_NUMBER);
+            t.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
