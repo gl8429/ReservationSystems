@@ -1,3 +1,5 @@
+import jdk.internal.org.objectweb.asm.tree.TryCatchBlockNode;
+
 import java.net.*;
 import java.io.*;
 import java.util.Random;
@@ -40,22 +42,31 @@ public class Client {
     public static void main(String [] args)
     {
         NameTable nameTable = new NameTable(FILE_NAME);
+        Scanner scanner = new Scanner(System.in);
+        Socket client = null;
 
         // Randomly choose a server
         Random rand = new Random();
         int randomNum = rand.nextInt(nameTable.size());
-        String host = nameTable.getHost(randomNum);
-        int port = nameTable.getPort(randomNum);
+        while (true) {
+            String host = nameTable.getHost(randomNum);
+            int port = nameTable.getPort(randomNum);
+                /* Connect to a server in the server list */
+            System.out.println("Connecting to " + host + " on port " + port);
+            try {
+                client = new Socket(host, port);
+            } catch (IOException e) {
+                randomNum = (randomNum + 1) % nameTable.size();
+                continue;
+            }
+
+            System.out.println("Just connected to " + client.getRemoteSocketAddress());
+            break;
+        }
+
 
         try
         {
-            Scanner scanner = new Scanner(System.in);
-
-            /* Connect to a server in the server list */
-            System.out.println("Connecting to " + host + " on port " + port);
-            Socket client = new Socket(host, port);
-            System.out.println("Just connected to " + client.getRemoteSocketAddress());
-
             OutputStream outToServer = client.getOutputStream();
             DataOutputStream out = new DataOutputStream(outToServer);
 
