@@ -86,43 +86,54 @@ public class Server extends Thread{
     }
 
     public void broadCast(Message.MessageType type, String buffer) throws IOException{
+        logger.info("Broadcast begin...");
         String myId =  nameTable.getHost(id) + ":" + nameTable.getPort(id);
+        logger.info("Clock send action.");
         clock.sendAction();
         for (int index = 0; index < nameTable.size(); ++index) {
             if (id != index) {
+                logger.info("Server " + id + "send " + type + " to Server " + index + "with info: " + buffer);
                 send(type, buffer, index, myId);
+                logger.info("Send Completed.");
             }
         }
+        logger.info("Broadcast completed...");
     }
 
     public void send(Message.MessageType type, String buffer, int index, String myId) throws IOException {
         String otherServerId = nameTable.getHost(index) + ":" + nameTable.getPort(index);
+        logger.info("Get server " + index +  "'s id: " + otherServerId);
         Message reqMessage = new Message(myId, otherServerId, type, buffer);
         Socket client = new Socket(nameTable.getHost(index), nameTable.getPort(index));
-        System.out.print("Just connected to: " + client.getRemoteSocketAddress());
         OutputStream outToOtherServer = client.getOutputStream();
         DataOutputStream out = new DataOutputStream(outToOtherServer);
+        logger.info("Send '" + reqMessage.toString() + "' to server " + index);
         out.writeUTF(reqMessage.toString());
-
     }
 
     public void sell(Socket server) throws IOException, InterruptedException {
             logger.info("Just connected to " + server.getRemoteSocketAddress());
             DataInputStream in = new DataInputStream(server.getInputStream());
 
-            Message message = Message.parseMessage(new StringTokenizer(in.readUTF()));
-            logger.info("Receive message from client:" + message.toString());
-            if (message.getTag() == Message.MessageType.RESERVE) {
+            logger.info(in.readUTF());
+            Message message = Message.parseMessage(in.readUTF());
+            logger.info("Receive message from client: " + message.toString());
+            if (message.getTag().equals(Message.MessageType.RESERVE) ) {
                 // Send CS request to other servers and update my own queue.
+                logger.info("Message Type: RESERVE");
                 semaphore.acquire();
+                logger.info(id + " begin to broadcast REQUEST to other servers with 'timestamp = " + clock.getValue(id) + "'");
                 q[id] = clock.getValue(id);
                 broadCast(Message.MessageType.REQUEST, String.valueOf(id) + " " + String.valueOf(q[id]));
                 semaphore.release();
                 while (true) {
                     Thread.sleep(1000);
                     semaphore.acquire();
-                    if (q[id] < findMin(q) && q[id] < findMin(clock.clock)) {
+                    if (q[id] == findMin(q) && q[id] < findMin(clock.clock)) {
+                        logger.info("Minimum timestamp in q is " + findMin(q) + ", and current timestamp of this request is " + q[id]);
+                        logger.info("Minimum clock from the other server's timestamp is " + findMin(clock.clock) + ", my current timestamp is " + q[id]);
                         semaphore.release();
+                        logger.info(message.getMsg());
                         String customer = message.getMsg().split(" ")[0];
                         int ticketNumber = Integer.parseInt(message.getMsg().split(" ")[1]);
                         broadCast(Message.MessageType.RELEASE, String.valueOf(id));
@@ -130,7 +141,7 @@ public class Server extends Thread{
                         q[id] = Integer.MAX_VALUE;
                         semaphore.release();
                         DataOutputStream out = new DataOutputStream(server.getOutputStream());
-
+                        logger.info("Begin to check whether there is enough tickets");
                         if (seat.getLeftSeats() < ticketNumber) {
                             Message msg = new Message(message.getDestId(), message.getSrcId(), Message.MessageType.RESULT,
                                     String.format("Failed: only %d seats left but %d seats are requested", seat.getLeftSeats(), ticketNumber));
