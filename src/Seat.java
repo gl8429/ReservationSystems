@@ -10,7 +10,7 @@ public class Seat {
 
     public Seat(int total) {
         for(int i = 0; i < total; ++i) {
-            seat.put(i + 1, " ");
+            seat.put(i + 1, "None");
         }
     }
 
@@ -27,17 +27,25 @@ public class Seat {
     int getLeftSeats() {
         int count = 0;
         for(Map.Entry<Integer, String> entry : seat.entrySet()) {
-            if(entry.getValue().equals(" ")) {
+            if(entry.getValue().equals("None")) {
                 ++count;
             }
         }
         return count;
     }
 
+    public String seatToString() {
+        String buffer = "";
+        for (Map.Entry<Integer, String> entry : this.getSeat().entrySet()) {
+            buffer += entry.getKey() + ":" + entry.getValue() + ",";
+        }
+        return buffer.substring(0, buffer.length() - 1);
+    }
+
     ArrayList<Integer> reserve(String name, int num) {
         ArrayList<Integer> assignedSeats = new ArrayList<Integer>();
         for (Map.Entry<Integer, String> entry : seat.entrySet()) {
-            if (entry.getValue().equals(" ")) {
+            if (entry.getValue().equals("None")) {
                 if (num == 0)
                     break;
                 seat.put(entry.getKey(), name);
@@ -53,7 +61,7 @@ public class Seat {
         for (Map.Entry<Integer, String> entry : seat.entrySet()) {
             if (entry.getValue().equals(name)) {
                 deletedSeats.add(entry.getKey());
-                seat.put(entry.getKey(), " ");
+                seat.put(entry.getKey(), "None");
             }
         }
         return deletedSeats;
