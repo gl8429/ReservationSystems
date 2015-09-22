@@ -2,7 +2,6 @@ import java.io.*;
 import java.net.*;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
@@ -121,6 +120,7 @@ public class Server extends Thread{
             } catch (EOFException e) {
                 break;
             }
+            logger.info("--------------------------------------------------");
             logger.info("Receive message from client: " + message.toString());
             if (message.getTag().equals(Message.MessageType.RESERVE)) {
                 // Send CS request to other servers and update my own queue.
@@ -136,11 +136,12 @@ public class Server extends Thread{
                     if (q[id] == findMin(q) && q[id] < findMin(clock.clock)) {
                         logger.info("Minimum timestamp in q is " + findMin(q) + ", and current timestamp of this request is " + q[id]);
                         logger.info("Minimum clock from the other server's timestamp is " + findMin(clock.clock) + ", my current timestamp is " + q[id]);
+                        logger.info(id + " begin to broadcast RELEASE to other servers with 'timestamp = " + clock.getValue(id) + "'");
                         semaphore.release();
                         logger.info(message.getMsg());
                         String customer = message.getMsg().split(" ")[0];
                         int ticketNumber = Integer.parseInt(message.getMsg().split(" ")[1]);
-                        broadCast(Message.MessageType.RELEASE, String.valueOf(id));
+                        broadCast(Message.MessageType.RELEASE, String.valueOf(id) + " " + clock.getValue(id));
                         semaphore.acquire();
                         q[id] = Integer.MAX_VALUE;
                         semaphore.release();
@@ -162,22 +163,26 @@ public class Server extends Thread{
                         break;
                     } else {
                         semaphore.release();
-                        break;
                     }
                 }
             } else if (message.getTag() == Message.MessageType.SEARCH) {
                 // Send CS request to other servers and update my own queue.
+                logger.info("Message Type: SEARCH");
                 semaphore.acquire();
+                logger.info(id + " begin to broadcast REQUEST to other servers with 'timestamp = " + clock.getValue(id) + "'");
                 q[id] = clock.getValue(id);
                 broadCast(Message.MessageType.REQUEST, String.valueOf(id) + " " + String.valueOf(q[id]));
                 semaphore.release();
                 while (true) {
                     Thread.sleep(1000);
                     semaphore.acquire();
-                    if (q[id] < findMin(q) && q[id] < findMin(clock.clock)) {
+                    if (q[id] == findMin(q) && q[id] < findMin(clock.clock)) {
+                        logger.info("Minimum timestamp in q is " + findMin(q) + ", and current timestamp of this request is " + q[id]);
+                        logger.info("Minimum clock from the other server's timestamp is " + findMin(clock.clock) + ", my current timestamp is " + q[id]);
+                        logger.info(id + " begin to broadcast RELEASE to other servers with 'timestamp = " + clock.getValue(id) + "'");
                         semaphore.release();
                         String customer = message.getMsg();
-                        broadCast(Message.MessageType.RELEASE, String.valueOf(id));
+                        broadCast(Message.MessageType.RELEASE, String.valueOf(id) + " " + clock.getValue(id));
                         semaphore.acquire();
                         q[id] = Integer.MAX_VALUE;
                         semaphore.release();
@@ -191,23 +196,29 @@ public class Server extends Thread{
                                     seat.search(customer).toString());
                             out.writeUTF(msg.toString());
                         }
+                        break;
                     } else {
                         semaphore.release();
                     }
                 }
             } else if (message.getTag() == Message.MessageType.DELETE) {
                 // Send CS request to other servers and update my own queue.
+                logger.info("Message Type: DELETE");
                 semaphore.acquire();
+                logger.info(id + " begin to broadcast REQUEST to other servers with 'timestamp = " + clock.getValue(id) + "'");
                 q[id] = clock.getValue(id);
                 broadCast(Message.MessageType.REQUEST, String.valueOf(id) + " " + String.valueOf(q[id]));
                 semaphore.release();
                 while (true) {
                     Thread.sleep(1000);
                     semaphore.acquire();
-                    if (q[id] < findMin(q) && q[id] < findMin(clock.clock)) {
+                    if (q[id] == findMin(q) && q[id] < findMin(clock.clock)) {
+                        logger.info("Minimum timestamp in q is " + findMin(q) + ", and current timestamp of this request is " + q[id]);
+                        logger.info("Minimum clock from the other server's timestamp is " + findMin(clock.clock) + ", my current timestamp is " + q[id]);
+                        logger.info(id + " begin to broadcast RELEASE to other servers with 'timestamp = " + clock.getValue(id) + "'");
                         semaphore.release();
                         String customer = message.getMsg();
-                        broadCast(Message.MessageType.RELEASE, String.valueOf(id));
+                        broadCast(Message.MessageType.RELEASE, String.valueOf(id) + " " + clock.getValue(id));
                         semaphore.acquire();
                         q[id] = Integer.MAX_VALUE;
                         semaphore.release();
@@ -221,28 +232,40 @@ public class Server extends Thread{
                                     String.format("%d seats have been released. %d seats are now available.", seat.delete(customer).size(), seat.getLeftSeats()));
                             out.writeUTF(msg.toString());
                         }
+                        break;
                     } else {
                         semaphore.release();
                     }
                 }
             } else if (message.getTag() == Message.MessageType.REQUEST) {
+                logger.info("Message Type: REQUEST");
                 int sender = Integer.parseInt(message.getMsg().split(" ")[0]);
                 int timeStamp = Integer.parseInt(message.getMsg().split(" ")[1]);
                 semaphore.acquire();
+                logger.info("Update timestamp because receive action.");
                 clock.receiveAction(sender, timeStamp);
                 q[sender] = timeStamp;
-                broadCast(Message.MessageType.ACK, String.valueOf(id) + " " + String.valueOf(clock.getValue(id)));
+                logger.info("Update sender's clock to " + q[sender]);
+                logger.info(id + " send ACK to sender server " + sender + "with 'timestamp = " + clock.getValue(id) + "'");
+                send(Message.MessageType.ACK, String.valueOf(id) + " " + String.valueOf(clock.getValue(id)), sender, message.getDestId());
                 semaphore.release();
             } else if (message.getTag() == Message.MessageType.RELEASE) {
-                int sender = Integer.parseInt(message.getMsg());
+                logger.info("Message Type: RELEASE");
+                int sender = Integer.parseInt(message.getMsg().split(" ")[0]);
+                int timeStamp = Integer.parseInt(message.getMsg().split(" ")[1]);
                 semaphore.acquire();
                 q[sender] = Integer.MAX_VALUE;
+                clock.receiveAction(sender, timeStamp);
+                logger.info("Update timestamp because receive RELEASE action.");
+                logger.info("Update sender's clock to " + q[sender]);
                 semaphore.release();
             } else if (message.getTag() == Message.MessageType.ACK) {
+                logger.info("Message Type: ACK");
                 int sender = Integer.parseInt(message.getMsg().split(" ")[0]);
                 int timeStamp = Integer.parseInt(message.getMsg().split(" ")[1]);
                 semaphore.acquire();
                 clock.receiveAction(sender, timeStamp);
+                logger.info("Update timestamp because receive ACK action.");
                 semaphore.release();
             } else if (message.getTag() == Message.MessageType.RESULT) {
                 int sender = Integer.parseInt(message.getMsg().split("#")[0]);
