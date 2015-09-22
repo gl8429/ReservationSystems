@@ -37,18 +37,7 @@ public class NameTable {
         }
         Util.println("End loading server information...\n");
     }
-
-    public int search(String s) {
-        for (int i = 0; i < size; ++i) {
-            if (names[i].equals(s)) return i;
-        }
-        return -1;
-    }
-
-    public String getName(int index) {
-        return names[index];
-    }
-
+    
     public String getHost(int index) {
         return hosts[index];
     }
