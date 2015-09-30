@@ -1,10 +1,7 @@
-import jdk.internal.org.objectweb.asm.tree.TryCatchBlockNode;
-
 import java.net.*;
 import java.io.*;
 import java.util.Random;
 import java.util.Scanner;
-import java.util.StringTokenizer;
 
 /**
  * Created by Xingyuan on 9/19/15.
@@ -48,55 +45,46 @@ public class Client {
         // Randomly choose a server
         Random rand = new Random();
         int randomNum = rand.nextInt(nameTable.size());
+
         while (true) {
-            String host = nameTable.getHost(randomNum);
-            int port = nameTable.getPort(randomNum);
-                /* Connect to a server in the server list */
-            System.out.println("Connecting to " + host + " on port " + port);
-            try {
-                client = new Socket(host, port);
-            } catch (IOException e) {
-                randomNum = (randomNum + 1) % nameTable.size();
-                continue;
-            }
-
-            System.out.println("Just connected to " + client.getRemoteSocketAddress());
-            break;
-        }
-
-
-        try
-        {
-            OutputStream outToServer = client.getOutputStream();
-            DataOutputStream out = new DataOutputStream(outToServer);
-
-            InputStream inFromServer = client.getInputStream();
-            DataInputStream in = new DataInputStream(inFromServer);
-
+            /* Read interactive command from terminal */
+            String cmd = scanner.nextLine();
             while (true) {
-                /* Read interactive command from terminal */
-                String cmd = scanner.nextLine();
-                String msgToServer;
                 try {
-                    msgToServer = parseCommand(cmd, client);
-                } catch (IllegalArgumentException e) {
-                    System.out.print(e.toString());
+                    /* Connect to a server in the server list */
+                    String host = nameTable.getHost(randomNum);
+                    int port = nameTable.getPort(randomNum);
+                    System.out.println("Connecting to " + host + " on port " + port);
+                    client = new Socket(host, port);
+                    System.out.println("Just connected to " + client.getRemoteSocketAddress());
+                    String msgToServer;
+                    try {
+                        msgToServer = parseCommand(cmd, client);
+                    } catch (IllegalArgumentException e) {
+                        System.out.print(e.toString());
+                        continue;
+                    }
+                    OutputStream outToServer = client.getOutputStream();
+                    DataOutputStream out = new DataOutputStream(outToServer);
+
+                    InputStream inFromServer = client.getInputStream();
+                    DataInputStream in = new DataInputStream(inFromServer);
+
+                    /* Send the corresponding message to the server */
+                    System.out.println("Sending message: " + msgToServer + " to server: " + client.getRemoteSocketAddress());
+                    out.writeUTF(msgToServer);
+
+                    /* Get the result back after server processes client's request */
+                    String msgGetFromServer = in.readUTF();
+                    Message message = Message.parseMessage(msgGetFromServer);
+                    System.out.println("The result is:");
+                    System.out.println(message.getMsg());
+                    break;
+                } catch (IOException e) {
+                    randomNum = (randomNum + 1) % nameTable.size();
                     continue;
                 }
-
-                 /* Send the corresponding message to the server */
-                System.out.println("Sending message: " + msgToServer + " to server: " + client.getRemoteSocketAddress());
-                out.writeUTF(msgToServer);
-
-                /* Get the result back after server processes client's request */
-                String msgGetFromServer = in.readUTF();
-                Message message = Message.parseMessage(msgGetFromServer);
-                System.out.println("The result is:");
-                System.out.println(message.getMsg());
             }
-        }catch(IOException e)
-        {
-            e.printStackTrace();
         }
     }
 }
