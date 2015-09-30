@@ -20,7 +20,6 @@ public class NameTable {
             BufferedReader bf = new BufferedReader(new FileReader(new File(fileName)));
             String line;
 
-            Util.println("\nStart loading server information...");
             while ((line = bf.readLine()) != null) {
                 String[] serverInfo = line.split(" ");
                 String serverName = serverInfo[0];
@@ -30,12 +29,10 @@ public class NameTable {
                 hosts[size] = serverHost;
                 ports[size] = serverPort;
                 ++size;
-                Util.println(String.format("Successfully load server: %s", serverName));
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Util.println("End loading server information...\n");
     }
     
     public String getHost(int index) {

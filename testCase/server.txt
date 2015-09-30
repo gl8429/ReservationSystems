@@ -1,2 +1,3 @@
-Garry 10.145.151.255 6066
-Kevin 10.145.151.255 6067
+Garry localhost 6066
+Kevin localhost 6067
+Michelle localhost 6068

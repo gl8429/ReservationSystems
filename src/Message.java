@@ -4,7 +4,7 @@
 
 public class Message {
     public enum MessageType {
-        RESERVE, SEARCH, DELETE, REQUEST, RELEASE, ACK, RESULT, RECOVER
+        RESERVE, SEARCH, DELETE, REQUEST, RELEASE, ACK, RESULT, SYNC
     }
 
     private String srcId;

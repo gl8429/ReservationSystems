@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.*;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -29,11 +30,31 @@ public class Server extends Thread{
     }
 
     public void run() {
+
+        // Synchronize Seat when a server awake
+        // if it is the first awake server, skip.
+        Random rand = new Random();
+        int randomNum = rand.nextInt(nameTable.size());
+        int count = 0;
+        while (count < nameTable.size()) {
+            int index = (randomNum + count) % nameTable.size();
+            if (index == id) {
+                ++count;
+                continue;
+            }
+            try {
+                String myId =  nameTable.getHost(id) + ":" + nameTable.getPort(id);
+                send(Message.MessageType.SYNC, "" + id, index, myId);
+                break;
+            } catch (IOException e) {
+                ++count;
+            }
+        }
+
         while(true)
         {
             try
             {
-
                 Socket server = serverSocket.accept();
                 Thread t = new Thread(new sellRunnable(server));
                 t.start();
@@ -352,32 +373,14 @@ public class Server extends Thread{
 
             } else if (message.getTag() == Message.MessageType.RESULT) {
 
-                int sender = Integer.parseInt(message.getMsg().split("#")[0]);
-                int timeStamp = Integer.parseInt(message.getMsg().split("#")[1]);
+                seat.setSeat(message.getMsg().split("-")[1]);
 
-                seat.setSeat(message.getMsg().split("#")[2]);
-                semaphore.acquire();
-                clock.receiveAction(sender, timeStamp);
-                semaphore.release();
+            } else if (message.getTag() == Message.MessageType.SYNC) {
 
-            } else if (message.getTag() == Message.MessageType.RECOVER) {
-
-                int sender = Integer.parseInt(message.getMsg().split(" ")[0]);
-                int recoverTimeStamp = Integer.parseInt(message.getMsg().split(" ")[1]);
-                int timeStamp;
-
-                semaphore.acquire();
-                timeStamp = clock.getValue(id);
-                clock.receiveAction(sender, recoverTimeStamp);
-                semaphore.release();
-
+                int sender = Integer.parseInt(message.getMsg());
                 String seatInfo = seat.seatToString();
+                send(Message.MessageType.RESULT, id  + "-" + seatInfo, sender, message.getDestId());
 
-                send(Message.MessageType.RESULT, id + "#" + timeStamp + "#" + seatInfo, sender, message.getDestId());
-
-                semaphore.acquire();
-                clock.sendAction();
-                semaphore.release();
             }
         }
     }

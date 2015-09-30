@@ -8,7 +8,7 @@ import java.util.Scanner;
  */
 
 public class Client {
-    private static final String FILE_NAME = "/Users/Xingyuan/Documents/GitHub/ReservationSystems/testCase/server.txt";
+    private static final String FILE_NAME = "/Users/Lucifer/IdeaProjects/ReservationSystems/testCase/server.txt";
 
     public static String parseCommand(String cmd, Socket client) {
         String srcId = client.getLocalSocketAddress().toString();
@@ -54,9 +54,9 @@ public class Client {
                     /* Connect to a server in the server list */
                     String host = nameTable.getHost(randomNum);
                     int port = nameTable.getPort(randomNum);
-                    System.out.println("Connecting to " + host + " on port " + port);
+                    //System.out.println("Connecting to " + host + " on port " + port);
                     client = new Socket(host, port);
-                    System.out.println("Just connected to " + client.getRemoteSocketAddress());
+                    //System.out.println("Just connected to " + client.getRemoteSocketAddress());
                     String msgToServer;
                     try {
                         msgToServer = parseCommand(cmd, client);
@@ -71,7 +71,7 @@ public class Client {
                     DataInputStream in = new DataInputStream(inFromServer);
 
                     /* Send the corresponding message to the server */
-                    System.out.println("Sending message: " + msgToServer + " to server: " + client.getRemoteSocketAddress());
+                    //System.out.println("Sending message: " + msgToServer + " to server: " + client.getRemoteSocketAddress());
                     out.writeUTF(msgToServer);
 
                     /* Get the result back after server processes client's request */
