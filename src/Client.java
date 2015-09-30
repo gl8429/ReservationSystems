@@ -40,7 +40,7 @@ public class Client {
     {
         NameTable nameTable = new NameTable(FILE_NAME);
         Scanner scanner = new Scanner(System.in);
-        Socket client = null;
+        Socket client;
 
         // Randomly choose a server
         Random rand = new Random();
